@@ -4,11 +4,11 @@ module CfMessageBus
 
     def initialize(config = {})
       @logger = config[:logger]
-      @subscriptions = Hash.new { |hash, key| hash[key] = [] }
       @requests = {}
       @synchronous_requests = {}
       @published_messages = []
       @published_synchronous_messages = []
+      reset
     end
 
     def subscribe(subject, opts = {}, &blk)
@@ -16,12 +16,12 @@ module CfMessageBus
       subject
     end
 
-    def publish(subject, message = nil, &callback)
+    def publish(subject, message = nil, inbox = nil, &callback)
       @subscriptions[subject].each do |subscription|
         subscription.call(stringify_keys(message))
       end
 
-      @published_messages.push({subject: subject, message: message, callback: callback})
+      @published_messages.push({subject: subject, message: message, inbox: inbox, callback: callback})
 
       callback.call if callback
     end
@@ -84,6 +84,10 @@ module CfMessageBus
           publication[:data] == data &&
           publication[:options] == options
       end
+    end
+
+    def reset
+      @subscriptions = Hash.new { |hash, key| hash[key] = [] }
     end
 
     private

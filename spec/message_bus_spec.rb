@@ -73,32 +73,41 @@ module CfMessageBus
 
     describe 'publishing' do
       it 'should publish on nats' do
-        mock_nats.should_receive(:publish).with("foo", "bar")
+        mock_nats.should_receive(:publish).with("foo", "bar", nil)
         bus.publish('foo', 'bar')
       end
 
       it 'should pass a nil message straight through' do
-        mock_nats.should_receive(:publish).with("foo", nil)
+        mock_nats.should_receive(:publish).with("foo", nil, nil)
         bus.publish('foo')
       end
 
       it 'should dump objects to json' do
-        mock_nats.should_receive(:publish).with("foo", JSON.dump('foo' => 'bar'))
+        mock_nats.should_receive(:publish).with("foo", JSON.dump('foo' => 'bar'), nil)
         bus.publish('foo', { foo: 'bar' })
       end
 
       it 'should dump arrays to json' do
-        mock_nats.should_receive(:publish).with("foo", JSON.dump(%w[foo bar baz]))
+        mock_nats.should_receive(:publish).with("foo", JSON.dump(%w[foo bar baz]), nil)
         bus.publish('foo', %w[foo bar baz])
       end
 
       it 'passes the callback through to nats' do
-        mock_nats.should_receive(:publish).with("foo", JSON.dump(%w[foo bar baz])).and_yield
+        mock_nats.should_receive(:publish).with("foo", JSON.dump(%w[foo bar baz]), nil).and_yield
         called = false
         bus.publish('foo', %w[foo bar baz]) do
           called = true
         end
-        expect(called).to be_true
+        expect(called).to be_truthy
+      end
+
+      it 'supports inbox' do
+        mock_nats.should_receive(:publish).with("foo", JSON.dump(%w[foo bar baz]), 'inbox').and_yield
+        called = false
+        bus.publish('foo', %w[foo bar baz], 'inbox') do
+          called = true
+        end
+        expect(called).to be_truthy
       end
     end
 
@@ -155,9 +164,9 @@ module CfMessageBus
         called = false
         bus.request('foo', nil, timeout: 10) do |response|
           called = true
-          expect(response[:timeout]).to be_true
+          expect(response[:timeout]).to be_truthy
         end
-        expect(called).to be_true
+        expect(called).to be_truthy
       end
 
       it 'should handle errors in timeouts' do

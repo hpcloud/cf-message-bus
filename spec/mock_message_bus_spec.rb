@@ -25,16 +25,18 @@ module CfMessageBus
       bus.publish("foo") do
         called = true
       end
-      expect(called).to be_true
+      expect(called).to be_truthy
     end
 
     it 'should record published messages' do
       bus.publish("foo")
+      bus.publish("bar", nil, "inbox")
       monkey = lambda { "I'm a monkey block" }
-      bus.publish("bar", {baz: :quux}, &monkey)
+      bus.publish("baz", {baz: :quux}, &monkey)
 
-      expect(bus.published_messages[0]).to eq({subject: "foo", message: nil, callback: nil})
-      expect(bus.published_messages[1]).to eq({subject: "bar", message: {baz: :quux}, callback: monkey})
+      expect(bus.published_messages[0]).to eq({subject: "foo", message: nil, inbox: nil, callback: nil})
+      expect(bus.published_messages[1]).to eq({subject: "bar", message: nil, inbox: "inbox", callback: nil})
+      expect(bus.published_messages[2]).to eq({subject: "baz", message: {baz: :quux}, inbox: nil, callback: monkey})
     end
 
     it 'should record published synchronous messages' do
@@ -145,10 +147,19 @@ module CfMessageBus
       bus.recover do
         called = true
       end
-      expect(called).to be_false
+      expect(called).to be_falsey
 
       bus.do_recovery
-      expect(called).to be_true
+      expect(called).to be_truthy
+    end
+
+    it 'knows how to clean up subscribers' do
+      bus.subscribe('hiya') do
+        raise 'do not call'
+      end
+
+      bus.reset
+      bus.publish('hiya')
     end
   end
 end

@@ -5,8 +5,8 @@ module CfMessageBus
     def self.message_bus(uri)
       ::NATS.connect(
         uri: uri,
-        max_reconnect_attempts: Float::INFINITY,
-        dont_randomize_servers: true,
+        max_reconnect_attempts: -1,
+        dont_randomize_servers: false,
       )
     end
   end
